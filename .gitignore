@@ -1,0 +1,19 @@
+# Eclipse stuff
+.project
+.classpath
+.settings/
+
+# Build output
+bin/
+target/
+out/
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# IntelliJ (in case you ever open it there)
+.idea/
+*.iml
