@@ -41,7 +41,7 @@ public class LoginPage extends BaseClass{
         password.sendKeys(pass);
         login.click();
     }
-    
+
     public String getErrorMessage() {
         try {
             return errorContainer.getText().trim();
@@ -49,7 +49,7 @@ public class LoginPage extends BaseClass{
             return "";
         }
     }
-    
+
     public boolean isInventoryVisible() {
         try {
             return getDriver().findElement(inventoryContainer).isDisplayed();
@@ -58,13 +58,33 @@ public class LoginPage extends BaseClass{
         }
     }
 
-    // Click the menu and then logout (best-effort; waits briefly)
+    // Click the menu and then logout using explicit waits for reliability
     public void clickMenuAndLogout() {
         try {
-            getDriver().findElement(menuButton).click();
-            // small sleep to allow menu animation (more robust approach would use explicit wait)
-            Thread.sleep(300);
-            getDriver().findElement(logoutLink).click();
+            int timeout = 10;
+            try {
+                String t = Config.get("timeout");
+                if (t != null && !t.isEmpty()) timeout = Integer.parseInt(t);
+            } catch (Exception ignored) {}
+
+            org.openqa.selenium.support.ui.WebDriverWait wait =
+                    new org.openqa.selenium.support.ui.WebDriverWait(getDriver(), java.time.Duration.ofSeconds(timeout));
+
+            // ensure we're on the inventory page before opening the menu
+            wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(inventoryContainer));
+
+            // click menu using JS in case normal click is intercepted
+            org.openqa.selenium.WebElement menu =
+                    wait.until(org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable(menuButton));
+            ((org.openqa.selenium.JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", menu);
+
+            // wait for logout link and click via JS
+            org.openqa.selenium.WebElement logout =
+                    wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(logoutLink));
+            ((org.openqa.selenium.JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", logout);
+
+            // wait until username field is visible on the login page (logout should navigate back)
+            wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(By.id("user-name")));
         } catch (Exception e) {
             // ignore - caller will verify resulting state
         }
@@ -73,6 +93,10 @@ public class LoginPage extends BaseClass{
     // Returns true if the login form elements are visible (we assume this means we're on the login page)
     public boolean isLoginFormVisible() {
         try {
+            // quick explicit wait to allow page to settle
+            org.openqa.selenium.support.ui.WebDriverWait wait =
+                    new org.openqa.selenium.support.ui.WebDriverWait(getDriver(), java.time.Duration.ofSeconds(5));
+            wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(By.id("user-name")));
             return username.isDisplayed() && password.isDisplayed() && login.isDisplayed();
         } catch (Exception e) {
             return false;
