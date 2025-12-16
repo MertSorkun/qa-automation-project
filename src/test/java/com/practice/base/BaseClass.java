@@ -4,6 +4,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 
 import com.practice.pages.LoginPage;
+import io.github.bonigarcia.wdm.WebDriverManager;
 
 public class BaseClass {
 
@@ -14,6 +15,8 @@ public class BaseClass {
 	public static LoginPage loginPage;
 
 	public static void setUp() {
+        // Ensure correct browser driver binary is available
+        WebDriverManager.chromedriver().setup();
 		driver = new ChromeDriver();
 		driver.manage().window().maximize();
 		driver.get(Config.get("baseUrl")); // landing page

@@ -15,6 +15,9 @@
         <cucumber.version>7.18.1</cucumber.version>
         <junit.version>4.13.2</junit.version>
         <surefire.version>3.2.5</surefire.version>
+        <!-- Explicit encoding to avoid "Project has no explicit encoding set" warnings -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
 
     <dependencies>
@@ -24,6 +27,18 @@
             <artifactId>selenium-java</artifactId>
             <version>${selenium.version}</version>
         </dependency>
+
+        <!-- SLF4J simple backend for tests (removes SLF4J no-providers warning) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.7</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- NOTE: removed selenium-devtools-v143 because that specific artifact/version was not available
+             in Maven Central and caused dependency resolution failures. The CDP warning is harmless and
+             can be addressed later by adding a matching devtools artifact when available. -->
 
         <!-- WebDriverManager (no manual driver downloads) -->
         <dependency>
@@ -59,6 +74,26 @@
 
     <build>
         <plugins>
+            <!-- Ensure resources are processed with the explicit encoding -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
+                <configuration>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
+            <!-- Ensure compiler uses the project's source encoding explicitly -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>${maven.compiler.source}</source>
+                    <target>${maven.compiler.target}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                </configuration>
+            </plugin>
             <!-- Make sure tests run with JUnit + Cucumber -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -69,4 +104,3 @@
     </build>
 
 </project>
-  
