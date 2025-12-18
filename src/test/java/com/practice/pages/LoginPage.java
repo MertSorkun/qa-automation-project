@@ -1,105 +1,75 @@
 package com.practice.pages;
 
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.support.FindBy;
 import org.openqa.selenium.support.PageFactory;
 
-import com.practice.base.BaseClass;
-import org.openqa.selenium.By;
-import com.practice.base.Config;
+import com.practice.utils.CommonMethods;
 
-public class LoginPage extends BaseClass{
+public class LoginPage extends CommonMethods {
 
-    
-    @FindBy(id = "user-name")
-    WebElement username;
-    
-    @FindBy(id = "password")
-    WebElement password;
-    
-    @FindBy(id = "login-button")
-    WebElement login;
-    
-    @FindBy(css = "div.error-message-container.error")
-    WebElement errorContainer;
+	@FindBy(id = "user-name")
+	WebElement username;
 
-    // inventory container id on successful login
-    private By inventoryContainer = By.id("inventory_container");
+	@FindBy(id = "password")
+	WebElement password;
 
-    // menu button and logout link used on the inventory page
-    private By menuButton = By.id("react-burger-menu-btn");
-    private By logoutLink = By.id("logout_sidebar_link");
+	@FindBy(id = "login-button")
+	WebElement login;
 
-    public LoginPage() {
-        PageFactory.initElements(BaseClass.getDriver(), this);
-    }
-    // convenience method to perform login in one call
-    public void login(String user, String pass) {
-        username.clear();
-        username.sendKeys(user);
-        password.clear();
-        password.sendKeys(pass);
-        login.click();
-    }
+	@FindBy(css = "div.error-message-container.error")
+	WebElement errorContainer;
 
-    public String getErrorMessage() {
-        try {
-            return errorContainer.getText().trim();
-        } catch (Exception e) {
-            return "";
-        }
-    }
+	// inventory container id on successful login (use By so CommonMethods can wait on it)
+	private By inventoryContainer = By.id("inventory_container");
+	
 
-    public boolean isInventoryVisible() {
-        try {
-            return getDriver().findElement(inventoryContainer).isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
-    }
+	public LoginPage() {
+		PageFactory.initElements(getDriver(), this);
+	}
 
-    // Click the menu and then logout using explicit waits for reliability
-    public void clickMenuAndLogout() {
-        try {
-            int timeout = 10;
-            try {
-                String t = Config.get("timeout");
-                if (t != null && !t.isEmpty()) timeout = Integer.parseInt(t);
-            } catch (Exception ignored) {}
+	// convenience method to perform login in one call
+	public void login(String user, String pass) {
+		// use shared input helper to reliably set values
+		setInputValue(username, user);
+		setInputValue(password, pass);
+		// click login using safeClick helper
+		safeClick(login);
 
-            org.openqa.selenium.support.ui.WebDriverWait wait =
-                    new org.openqa.selenium.support.ui.WebDriverWait(getDriver(), java.time.Duration.ofSeconds(timeout));
+		// 3) Fallback: attempt to click in-page modal 'OK' buttons that reference
+		// password change text
+		try {
+			// find elements that look like modals mentioning password change
+			java.util.List<WebElement> msgs = getDriver().findElements(By.xpath(
+					"//*[contains(translate(text(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'change your password') or contains(translate(text(),'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'password')]"));
+			if (!msgs.isEmpty()) {
+				try {
+					By okLocator = By.xpath(
+							"//button[normalize-space()='OK' or normalize-space()='Ok' or normalize-space()='Okay' or contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'ok') or contains(translate(.,'ABCDEFGHIJKLMNOPQRSTUVWXYZ','abcdefghijklmnopqrstuvwxyz'),'close')]");
+					safeClick(okLocator);
+					System.out.println("[DEBUG] Clicked in-page OK button for password popup");
+				} catch (Exception ignored) {
+				}
+			}
+		} catch (Exception ignored) {
+		}
+	}
 
-            // ensure we're on the inventory page before opening the menu
-            wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(inventoryContainer));
+	public String getErrorMessage() {
+		try {
+			return errorContainer.getText().trim();
+		} catch (Exception e) {
+			return "";
+		}
+	}
 
-            // click menu using JS in case normal click is intercepted
-            org.openqa.selenium.WebElement menu =
-                    wait.until(org.openqa.selenium.support.ui.ExpectedConditions.elementToBeClickable(menuButton));
-            ((org.openqa.selenium.JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", menu);
-
-            // wait for logout link and click via JS
-            org.openqa.selenium.WebElement logout =
-                    wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(logoutLink));
-            ((org.openqa.selenium.JavascriptExecutor) getDriver()).executeScript("arguments[0].click();", logout);
-
-            // wait until username field is visible on the login page (logout should navigate back)
-            wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(By.id("user-name")));
-        } catch (Exception e) {
-            // ignore - caller will verify resulting state
-        }
-    }
-
-    // Returns true if the login form elements are visible (we assume this means we're on the login page)
-    public boolean isLoginFormVisible() {
-        try {
-            // quick explicit wait to allow page to settle
-            org.openqa.selenium.support.ui.WebDriverWait wait =
-                    new org.openqa.selenium.support.ui.WebDriverWait(getDriver(), java.time.Duration.ofSeconds(5));
-            wait.until(org.openqa.selenium.support.ui.ExpectedConditions.visibilityOfElementLocated(By.id("user-name")));
-            return username.isDisplayed() && password.isDisplayed() && login.isDisplayed();
-        } catch (Exception e) {
-            return false;
-        }
-    }
+	public boolean isInventoryVisible() {
+		try {
+			// use shared visibility helper with a short timeout
+			return isElementVisible(inventoryContainer, 3);
+		} catch (Exception e) {
+			return false;
+		}
+	}
 }

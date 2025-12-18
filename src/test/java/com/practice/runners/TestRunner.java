@@ -16,7 +16,7 @@ import io.cucumber.junit.CucumberOptions;
 				"json:target/cucumber-report.json" // JSON report
 		}, monochrome = true, // cleaner console output
 		dryRun = false,
-		tags = "@smoke" // run only scenarios with @smoke
+		tags = "@checkout" // run only scenarios with @checkout while focusing on checkout
 )
 public class TestRunner {
 	// empty on purpose - Cucumber + JUnit handle everything
